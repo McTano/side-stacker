@@ -3,8 +3,7 @@ import BoardView from "./Board"
 import "./App.css"
 import { BoardState, CellState, GameState } from "./types"
 import { GameAction, playMove } from "./actions"
-const BOARD_HEIGHT = 7
-const BOARD_WIDTH = 7
+import { BOARD_HEIGHT, BOARD_WIDTH } from "./constants"
 
 const emptyBoard = () => {
   const grid: BoardState = []
@@ -16,9 +15,10 @@ const emptyBoard = () => {
   return grid
 }
 
-const initialState = {
+const initialState: GameState = {
   board: emptyBoard(),
   p1Turn: true,
+  winner: undefined,
 }
 
 const gameReducer = (state: GameState, action: GameAction) => {
@@ -32,12 +32,20 @@ const gameReducer = (state: GameState, action: GameAction) => {
 }
 
 function App() {
-  const [{ board, p1Turn }, dispatch] = useReducer(gameReducer, initialState)
+  const [{ board, p1Turn, winner }, dispatch] = useReducer(
+    gameReducer,
+    initialState
+  )
   const activeToken = p1Turn ? "X" : "O"
   return (
     <div className="App">
-      <h2> {activeToken}'s Turn</h2>
-      <BoardView rows={board} activeToken={activeToken} dispatch={dispatch} />
+      {winner ? `${winner} wins!` : <h2> {activeToken}'s Turn</h2>}
+      <BoardView
+        activeToken={activeToken}
+        rows={board}
+        winner={winner}
+        dispatch={dispatch}
+      />
     </div>
   )
 }

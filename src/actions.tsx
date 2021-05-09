@@ -1,4 +1,5 @@
 import { produce } from "immer"
+import { winCheck } from "./victory"
 import { BoardSide, CellState, GameState } from "./types"
 
 export type GameAction = {
@@ -15,6 +16,9 @@ export const playMove = (
   return produce((draftState: GameState) => {
     pushToRow(draftState.board[row], side, token)
     draftState.p1Turn = !draftState.p1Turn
+    if (winCheck(draftState.board, token)) {
+      draftState.winner = token
+    }
   })(state)
 }
 
