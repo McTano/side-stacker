@@ -13,12 +13,9 @@ export const playMove = (
   { side, token, row }: playMovePayload
 ): GameState => {
   return produce((draftState: GameState) => {
-    console.log(state)
     pushToRow(draftState.board[row], side, token)
+    draftState.p1Turn = !draftState.p1Turn
   })(state)
-  //   if (side === "R") {
-  //     targetRow = [...targetRow].reverse()
-  //   }
 }
 
 // mutates row in place
@@ -29,15 +26,13 @@ const pushToRow = (
   side: BoardSide,
   token: CellState
 ): void => {
-  //   if (side === "R") {
-  //     targetRow = [...targetRow].reverse()
-  //   }
   for (let i = 0; i < row.length; i++) {
-    if (row[i] === "_") {
-      row[i] = token
+    const col = side === "R" ? row.length - 1 - i : i
+    if (row[col] === "_") {
+      row[col] = token
       return
     }
   }
   // if we reach the end of the row,
-  console.error("Row is full.", row, side, token)
+  throw new Error("Row is full.")
 }

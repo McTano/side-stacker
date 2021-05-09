@@ -33,10 +33,11 @@ const gameReducer = (state: GameState, action: GameAction) => {
 
 function App() {
   const [{ board, p1Turn }, dispatch] = useReducer(gameReducer, initialState)
+  const activeToken = p1Turn ? "X" : "O"
   return (
     <div className="App">
-      <h2>Player {p1Turn ? 1 : 2}'s Turn</h2>
-      <BoardView rows={board} dispatch={dispatch} />
+      <h2> {activeToken}'s Turn</h2>
+      <BoardView rows={board} activeToken={activeToken} dispatch={dispatch} />
     </div>
   )
 }
