@@ -21,3 +21,6 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# leaving vscode settings in since this is a personal project
+# .vscode
