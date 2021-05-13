@@ -1,23 +1,38 @@
 import { produce } from "immer"
 import { winCheck } from "./victory"
-import { BoardSide, CellState, GameState } from "./types"
+import { BoardSide, CellState, RootState, Token } from "./types"
 
-export type GameAction = {
-  type: "playMove"
-  payload: playMovePayload
-}
+export type GameAction =
+  | {
+      type: "playMove"
+      payload: playMovePayload
+    }
+  | {
+      type: "START_GAME"
+      payload: {
+        myTurn: boolean
+        myToken: Token
+      }
+    }
 
-type playMovePayload = { side: BoardSide; token: "X" | "O"; row: number }
+type playMovePayload = { side: BoardSide; row: number }
 
 export const playMove = (
-  state: GameState,
-  { side, token, row }: playMovePayload
-): GameState => {
-  return produce((draftState: GameState) => {
-    pushToRow(draftState.board[row], side, token)
-    draftState.p1Turn = !draftState.p1Turn
-    if (winCheck(draftState.board, token)) {
-      draftState.winner = token
+  state: RootState,
+  { side, row }: playMovePayload
+): RootState => {
+  return produce((draftState: RootState): void => {
+    if (draftState.game.status === "PLAYING" && draftState.game.myTurn) {
+      const { myToken } = draftState.game
+      pushToRow(draftState.board[row], side, myToken)
+      draftState.game.myTurn = !draftState.game.myTurn
+      // if (winCheck(draftState.board, myToken)) {
+      //   draftState.game = { status: "GAME_OVER", won: true }
+      // }
+    }
+    // should be impossible
+    else {
+      console.error("Tried to play move out of valid turn")
     }
   })(state)
 }

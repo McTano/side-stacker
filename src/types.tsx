@@ -19,8 +19,12 @@ export type BoardSide = "L" | "R"
 
 export type BoardState = CellState[][]
 
-export type GameState = {
+type GameState =
+  | { status: "WAITING_FOR_MATCH" }
+  | { status: "PLAYING"; myToken: Token; myTurn: boolean }
+  | { status: "GAME_OVER"; won: boolean }
+
+export type RootState = {
+  game: GameState
   board: BoardState
-  p1Turn: boolean
-  winner?: Token
 }

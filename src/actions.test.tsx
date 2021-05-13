@@ -1,5 +1,5 @@
 import { playMove } from "./actions"
-import { BoardState, GameState } from "./types"
+import { BoardState, RootState } from "./types"
 
 const exampleBoard: BoardState = [
   ["X", "_", "X", "O", "O", "O", "O"], // row 0
@@ -12,8 +12,8 @@ const exampleBoard: BoardState = [
 ]
 
 test("playmove works from the left", () => {
-  const stateBefore: GameState = {
-    p1Turn: false,
+  const stateBefore: RootState = {
+    myTurn: false,
     board: exampleBoard,
   }
   const actual = playMove(stateBefore, {
@@ -38,8 +38,8 @@ test("playmove works from the left", () => {
 })
 
 test("playmove works from the right", () => {
-  const stateBefore: GameState = {
-    p1Turn: true,
+  const stateBefore: RootState = {
+    myTurn: true,
     board: [
       ["X", "_", "X", "O", "O", "O", "O"],
       ["_", "_", "_", "_", "_", "_", "_"],

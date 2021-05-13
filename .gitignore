@@ -24,3 +24,6 @@ yarn-error.log*
 
 # leaving vscode settings in since this is a personal project
 # .vscode
+
+# ignore compiled js files
+*.js

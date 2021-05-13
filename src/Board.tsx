@@ -1,27 +1,27 @@
 import React, { Dispatch, FC } from "react"
 import { GameAction } from "./actions"
-import { BoardState, CellState, Token } from "./types"
+import { BoardState, CellState, RootState, Token } from "./types"
 
-type Props = {
-  rows: BoardState
+type Props = RootState & {
   dispatch: Dispatch<GameAction>
-  activeToken: Token
-  winner?: Token
+  game: { status: "PLAYING" | "GAME_OVER" }
 }
 
 const rowFull = (row: CellState[]) => row.every((cell) => cell !== "_")
 
-const BoardView: FC<Props> = ({ rows, dispatch, activeToken, winner }) => {
+const BoardView: FC<Props> = ({ board, game, dispatch }) => {
+  const shouldDisable = (row: CellState[]): boolean =>
+    game.status === "GAME_OVER" || !game.myTurn || rowFull(row)
   return (
     <table>
       <tbody>
-        {rows.map((row, rowNum) => (
+        {board.map((row, rowNum) => (
           <tr key={rowNum}>
             {[
-              // left side buttons
+              // left side button
               <td key={`left-button-${rowNum}`}>
                 <button
-                  disabled={!!!!winner || rowFull(row)}
+                  disabled={shouldDisable(row)}
                   className="left-push-button"
                   onClick={(event) =>
                     dispatch({
@@ -29,7 +29,6 @@ const BoardView: FC<Props> = ({ rows, dispatch, activeToken, winner }) => {
                       payload: {
                         row: rowNum,
                         side: "L",
-                        token: activeToken,
                       },
                     })
                   }
@@ -42,7 +41,7 @@ const BoardView: FC<Props> = ({ rows, dispatch, activeToken, winner }) => {
               // right side button
               <td key={`right-button-${rowNum}`}>
                 <button
-                  disabled={!!winner || rowFull(row)}
+                  disabled={shouldDisable(row)}
                   className="right-push-button"
                   onClick={(event) =>
                     dispatch({
@@ -50,7 +49,6 @@ const BoardView: FC<Props> = ({ rows, dispatch, activeToken, winner }) => {
                       payload: {
                         row: rowNum,
                         side: "R",
-                        token: activeToken,
                       },
                     })
                   }
