@@ -28,7 +28,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server": "node ./compiled/websocket_server/index.js",
+    "server": "npm run compile-server && npm run start-server",
+    "start-server": "node ./compiled/websocket_server/server.js",
     "compile-server": "npx tsc --project tsconfig.server.json"
   },
   "eslintConfig": {
@@ -48,5 +49,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/websocket": "^1.0.2"
   }
 }

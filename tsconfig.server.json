@@ -5,8 +5,8 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": false,
-    "noImplicitAny": false,
+    "strict": true,
+    "noImplicitAny": true,
     "noEmitOnError": false,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
@@ -18,5 +18,5 @@
     "moduleResolution": "node",
     "outDir": "./compiled"
   },
-  "include": ["websocket_server/index.ts", "./src/util.ts"]
+  "include": ["websocket_server/server.ts", "./src/util.ts"]
 }

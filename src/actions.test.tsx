@@ -13,14 +13,14 @@ const exampleBoard: BoardState = [
 
 test("playmove works from the left", () => {
   const stateBefore: RootState = {
-    myTurn: false,
+    game: { status: "PLAYING", myToken: "O", myTurn: true },
     board: exampleBoard,
   }
   const actual = playMove(stateBefore, {
     side: "L",
     token: "O",
     row: 2,
-  })
+  } as const)
   const expected = {
     board: [
       ["X", "_", "X", "O", "O", "O", "O"],
@@ -31,15 +31,14 @@ test("playmove works from the left", () => {
       ["_", "_", "_", "_", "_", "_", "_"],
       ["_", "_", "_", "_", "_", "_", "_"],
     ],
-    p1Turn: true,
-    winner: "O",
+    game: { status: "PLAYING", myToken: "O", myTurn: false },
   }
   expect(actual).toEqual(expected)
 })
 
 test("playmove works from the right", () => {
   const stateBefore: RootState = {
-    myTurn: true,
+    game: { status: "PLAYING", myToken: "O", myTurn: true },
     board: [
       ["X", "_", "X", "O", "O", "O", "O"],
       ["_", "_", "_", "_", "_", "_", "_"],
@@ -65,7 +64,7 @@ test("playmove works from the right", () => {
       ["_", "_", "_", "_", "_", "_", "_"],
       ["_", "_", "_", "_", "_", "_", "_"],
     ],
-    p1Turn: false,
+    game: { myToken: "O", myTurn: false, status: "PLAYING" },
   }
 
   expect(actual).toEqual(expected)

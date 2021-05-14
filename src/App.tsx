@@ -1,8 +1,14 @@
-import React, { Fragment, useEffect, useReducer, useState } from "react"
+import React, {
+  Fragment,
+  useCallback,
+  useEffect,
+  useReducer,
+  useState,
+} from "react"
 import BoardView from "./Board"
 import "./App.css"
-import { RootState, Token } from "./types"
-import { GameAction, playMove } from "./actions"
+import { ClientMessage, RootState, Token, GameAction } from "./types"
+import { playMove } from "./actions"
 import { connect } from "http2"
 import produce from "immer"
 import { emptyBoard } from "./util"
@@ -19,11 +25,12 @@ const initialState: RootState = {
 const gameReducer = (state: RootState, action: GameAction): RootState => {
   switch (action.type) {
     case "START_GAME":
+      const proof: typeof action["type"] extends "START_GAME" ? 1 : never = 1
       return produce((draftState): void => {
         const { myToken, myTurn } = action.payload
         draftState.game = { status: "PLAYING", myToken, myTurn }
       })(state)
-    case "playMove":
+    case "PLAY_MOVE":
       return playMove(state, action.payload)
     default:
       console.error("unimplemented action: ", action, state)
@@ -31,7 +38,7 @@ const gameReducer = (state: RootState, action: GameAction): RootState => {
   }
 }
 
-const ws = new WebSocket("ws://localhost:8080")
+const socket = new WebSocket("ws://localhost:8080")
 
 function App() {
   const [state, dispatch] = useReducer(gameReducer, initialState)
@@ -39,13 +46,25 @@ function App() {
   const [connection, setConnectionState] = useState<ConnectionState>({
     status: "WAITING",
   })
-  console.log(connection, game)
+
+  const sendMessage = (msg: ClientMessage) => {
+    socket.send(JSON.stringify(msg))
+  }
+
+  const handleMove = (action: GameAction & { type: "PLAY_MOVE" }) => {
+    connection.status === "CONNECTED" &&
+      sendMessage({
+        type: "PLAY_MOVE",
+        payload: { ...action.payload, userID: connection.userID },
+      })
+  }
+
   useEffect(() => {
-    ws.onopen = (event) => {
+    socket.onopen = (event) => {
       console.log("websocket connected")
       console.log(event)
     }
-    ws.onmessage = (msg) => {
+    socket.onmessage = (msg) => {
       if (msg.type === "message") {
         let contents
         try {
@@ -60,13 +79,19 @@ function App() {
               })
               break
             //   break
-            case "START_GAME":
+            case "START_GAME": {
               const { myTurn, myToken } = contents
               dispatch({ type: "START_GAME", payload: { myTurn, myToken } })
               break
-            default:
+            }
+            case "MOVE_PLAYED": {
+              dispatch({ type: "PLAY_MOVE", payload: contents.payload })
+              break
+            }
+            default: {
               setConnectionState(contents)
               console.warn("received unrecognized utf8 msg ", contents)
+            }
           }
         } catch (e) {
           console.error(e)
@@ -92,7 +117,7 @@ function App() {
         <h2>{game.myTurn ? "Your" : "Opponent's"} Turn</h2>
       )}
       {(game.status === "PLAYING" || game.status === "GAME_OVER") && (
-        <BoardView {...{ game, board, dispatch }} />
+        <BoardView {...{ game, board, dispatch, socket, onMove: handleMove }} />
       )}
       {/* winner notification */}
       <h1>

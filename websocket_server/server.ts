@@ -12,9 +12,13 @@
 // var emptyBoard = require("../src/util.ts").emptyBoard
 import http from "http"
 import { emptyBoard } from "../src/util"
-const fs = require("fs")
-const WebSocketServer = require("websocket").server
-const util = require("../src/util")
+import fs from "fs"
+import { connection, server as WebSocketServer } from "websocket"
+import { Token, ClientMessage, BoardState } from "../src/types"
+import { pushToRow } from "../src/actions"
+// const fs = require("fs")
+// const WebSocketServer = require("websocket").server
+// const util = require(d"../src/util")
 
 var connectionArray = []
 var nextID = Date.now()
@@ -42,6 +46,14 @@ var appendToMakeUnique = 1
 //   }
 // )
 
+type Player = {
+  userID: number
+  opponent: number
+  myToken: Token
+  connection: connection
+  matchID: number
+}
+
 var httpServer = http.createServer(function (request, response) {
   console.log(new Date() + " Received request for " + request.url)
   response.writeHead(404)
@@ -63,10 +75,12 @@ var wsServer = new WebSocketServer({
 })
 console.log("***CREATED")
 
+type UnpairedPlayer = Pick<Player, "userID" | "connection">
+
 // Adapted this code from https://blog.logrocket.com/websockets-tutorial-how-to-go-real-time-with-node-and-react-8e4693fbf843/
-const clients = {}
-const pairingQueue: any[] = []
-const matches = {}
+const clients: { [playerID: number]: Player } = {}
+const pairingQueue: UnpairedPlayer[] = []
+const matches: { [matchID: number]: any } = {}
 
 let nextUserID = 1
 const getUserID = () => nextUserID++
@@ -74,12 +88,24 @@ const getUserID = () => nextUserID++
 let nextMatchID = 1
 const getMatchID = () => nextMatchID++
 
-const tryToPair = (player) => {
+const tryToPair = (player: UnpairedPlayer) => {
   if (pairingQueue.length >= 1) {
-    const partner = clients[pairingQueue.shift()]
-    partner.opponent = player.userID
-    player.opponent = partner.userID
+    const partner = pairingQueue.shift() as UnpairedPlayer
     const matchID = getMatchID()
+    const p1: Player = {
+      ...player,
+      matchID,
+      userID: player.userID,
+      opponent: partner.userID,
+      myToken: "X",
+    }
+    const p2: Player = {
+      ...partner,
+      matchID,
+      userID: partner.userID,
+      opponent: player.userID,
+      myToken: "O",
+    }
     player.connection.sendUTF(
       JSON.stringify({
         status: "START_GAME",
@@ -98,13 +124,17 @@ const tryToPair = (player) => {
         matchID,
       })
     )
+    clients[p1.userID] = p1
+    clients[p2.userID] = p2
+    console.log({ p1, p2, partner, player })
+
     matches[matchID] = {
       p1: player.userID,
       p2: partner.userID,
       board: emptyBoard(),
     }
   } else {
-    pairingQueue.push(player.userID)
+    pairingQueue.push(player)
   }
 }
 
@@ -116,23 +146,39 @@ wsServer.on("request", function (request) {
       "."
   )
   // You can rewrite this part of the code to accept only the requests from allowed origin
-  const connection = request.accept(null, request.origin)
+  const connection = request.accept(null as any, request.origin)
 })
 
-wsServer.on("connect", function (connection) {
-  console.log("received connection from " + connection.origin)
+wsServer.on("connect", function (connection: connection) {
+  console.log("received connection from ", connection.remoteAddress)
   var userID = getUserID()
   const player = { connection, userID }
-  clients[userID] = player
   connection.send(JSON.stringify({ status: "CONNECTED", userID }))
   tryToPair(player)
-  console.log(
-    "connected: " + userID + " in " + Object.getOwnPropertyNames(clients)
-  )
+  console.log("connected: " + userID)
 
   connection.on("message", (message) => {
-    if (message.type === "utf8") {
-      const contents = message.utf8Data
+    if (message.type === "utf8" && message.utf8Data != null) {
+      const data: ClientMessage = JSON.parse(message.utf8Data)
+      console.log(data)
+      switch (data.type) {
+        case "PLAY_MOVE": {
+          const { side, row, userID, token } = data.payload
+          const player: Player = clients[userID]
+          const board: BoardState = matches[player.matchID].board
+          const p2: Player = clients[player.opponent]
+          pushToRow(board[row], side, token)
+          p2.connection.send(
+            JSON.stringify({
+              status: "MOVE_PLAYED",
+              payload: { side, row, token },
+            })
+          )
+          break
+        }
+        default:
+          console.warn("Unrecognized message from client:", data)
+      }
     }
     console.log("received message", message)
   })

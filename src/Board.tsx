@@ -1,17 +1,36 @@
 import React, { Dispatch, FC } from "react"
-import { GameAction } from "./actions"
-import { BoardState, CellState, RootState, Token } from "./types"
+import {
+  BoardSide,
+  CellState,
+  GameAction,
+  playMovePayload,
+  RootState,
+  Token,
+} from "./types"
 
 type Props = RootState & {
   dispatch: Dispatch<GameAction>
   game: { status: "PLAYING" | "GAME_OVER" }
+  onMove: (action: GameAction<"PLAY_MOVE">) => void
 }
 
 const rowFull = (row: CellState[]) => row.every((cell) => cell !== "_")
 
-const BoardView: FC<Props> = ({ board, game, dispatch }) => {
+const BoardView: FC<Props> = ({ board, game, onMove, dispatch }) => {
   const shouldDisable = (row: CellState[]): boolean =>
     game.status === "GAME_OVER" || !game.myTurn || rowFull(row)
+  const handleMove = (side: BoardSide, row: number, token: Token) => {
+    const action: GameAction<"PLAY_MOVE"> = {
+      type: "PLAY_MOVE",
+      payload: {
+        row,
+        side,
+        token,
+      },
+    }
+    dispatch(action)
+    onMove(action)
+  }
   return (
     <table>
       <tbody>
@@ -23,14 +42,9 @@ const BoardView: FC<Props> = ({ board, game, dispatch }) => {
                 <button
                   disabled={shouldDisable(row)}
                   className="left-push-button"
-                  onClick={(event) =>
-                    dispatch({
-                      type: "playMove",
-                      payload: {
-                        row: rowNum,
-                        side: "L",
-                      },
-                    })
+                  onClick={(_) =>
+                    game.status === "PLAYING" &&
+                    handleMove("L", rowNum, game.myToken)
                   }
                 >
                   {"=>"}
@@ -43,14 +57,9 @@ const BoardView: FC<Props> = ({ board, game, dispatch }) => {
                 <button
                   disabled={shouldDisable(row)}
                   className="right-push-button"
-                  onClick={(event) =>
-                    dispatch({
-                      type: "playMove",
-                      payload: {
-                        row: rowNum,
-                        side: "R",
-                      },
-                    })
+                  onClick={(_) =>
+                    game.status === "PLAYING" &&
+                    handleMove("R", rowNum, game.myToken)
                   }
                 >
                   {"<="}
