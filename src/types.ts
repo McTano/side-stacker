@@ -45,6 +45,13 @@ type GameActionCases =
       type: "START_GAME"
       payload: { myTurn: boolean; myToken: Token }
     }
+  | {
+      type: "YOU_WIN"
+    }
+  | {
+      type: "YOU_LOSE"
+      payload: { lastMove: playMovePayload }
+    }
 
 export type GameAction<K = unknown> = GameActionCases & { type: K }
 

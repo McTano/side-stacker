@@ -1,16 +1,8 @@
-import React, {
-  Fragment,
-  useCallback,
-  useEffect,
-  useReducer,
-  useState,
-} from "react"
-import BoardView from "./Board"
+import React, { useEffect, useReducer, useState } from "react"
+import { gameReducer } from "./actions"
 import "./App.css"
-import { ClientMessage, RootState, Token, GameAction } from "./types"
-import { playMove } from "./actions"
-import { connect } from "http2"
-import produce from "immer"
+import BoardView from "./Board"
+import { ClientMessage, GameAction, RootState } from "./types"
 import { emptyBoard } from "./util"
 
 type ConnectionState =
@@ -20,22 +12,6 @@ type ConnectionState =
 const initialState: RootState = {
   board: emptyBoard(),
   game: { status: "WAITING_FOR_MATCH" },
-}
-
-const gameReducer = (state: RootState, action: GameAction): RootState => {
-  switch (action.type) {
-    case "START_GAME":
-      const proof: typeof action["type"] extends "START_GAME" ? 1 : never = 1
-      return produce((draftState): void => {
-        const { myToken, myTurn } = action.payload
-        draftState.game = { status: "PLAYING", myToken, myTurn }
-      })(state)
-    case "PLAY_MOVE":
-      return playMove(state, action.payload)
-    default:
-      console.error("unimplemented action: ", action, state)
-      return state
-  }
 }
 
 const socket = new WebSocket("ws://localhost:8080")
@@ -60,9 +36,8 @@ function App() {
   }
 
   useEffect(() => {
-    socket.onopen = (event) => {
+    socket.onopen = (_) => {
       console.log("websocket connected")
-      console.log(event)
     }
     socket.onmessage = (msg) => {
       if (msg.type === "message") {
@@ -86,6 +61,17 @@ function App() {
             }
             case "MOVE_PLAYED": {
               dispatch({ type: "PLAY_MOVE", payload: contents.payload })
+              break
+            }
+            case "YOU_WIN": {
+              dispatch({ type: "YOU_WIN" })
+              break
+            }
+            case "YOU_LOSE": {
+              dispatch({
+                type: "YOU_LOSE",
+                payload: { lastMove: contents.lastMove },
+              })
               break
             }
             default: {

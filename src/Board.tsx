@@ -1,12 +1,5 @@
 import React, { Dispatch, FC } from "react"
-import {
-  BoardSide,
-  CellState,
-  GameAction,
-  playMovePayload,
-  RootState,
-  Token,
-} from "./types"
+import { BoardSide, CellState, GameAction, RootState, Token } from "./types"
 
 type Props = RootState & {
   dispatch: Dispatch<GameAction>
