@@ -1,0 +1,3 @@
+- Start Bot Game
+- Whenever player makes a move, respond with a random move.
+- mark game as bot game in server data.

@@ -1,12 +1,5 @@
 import { produce } from "immer"
-import {
-  BoardSide,
-  CellState,
-  GameAction,
-  playMovePayload,
-  RootState,
-  Token,
-} from "./types"
+import { BoardState, CellState, GameAction, Move, RootState } from "./types"
 
 export const gameReducer = (
   state: RootState,
@@ -14,7 +7,6 @@ export const gameReducer = (
 ): RootState => {
   switch (action.type) {
     case "START_GAME":
-      const proof: typeof action["type"] extends "START_GAME" ? 1 : never = 1
       return produce((draftState): void => {
         const { myToken, myTurn } = action.payload
         draftState.game = { status: "PLAYING", myToken, myTurn }
@@ -28,10 +20,8 @@ export const gameReducer = (
 
     case "YOU_LOSE":
       return produce((draftState: RootState) => {
-        const {
-          lastMove: { side, row, token },
-        } = action.payload
-        pushToRow(draftState.board[row], side, token)
+        const { lastMove } = action.payload
+        applyMove(draftState.board, lastMove)
         draftState.game = { status: "GAME_OVER", won: false }
       })(state)
     default:
@@ -40,13 +30,10 @@ export const gameReducer = (
   }
 }
 
-export const playMove = (
-  state: RootState,
-  { side, row, token }: playMovePayload
-): RootState => {
+export const playMove = (state: RootState, move: Move): RootState => {
   return produce((draftState: RootState): void => {
     if (draftState.game.status === "PLAYING") {
-      pushToRow(draftState.board[row], side, token)
+      applyMove(draftState.board, move)
       draftState.game.myTurn = !draftState.game.myTurn
     }
     // should be impossible
@@ -56,21 +43,26 @@ export const playMove = (
   })(state)
 }
 
+export const rowFull = (row: CellState[]) =>
+  row.every((cell: CellState) => cell !== "_")
+
 // mutates row in place
 // assume:
 // - all blanks are in the middle
-export const pushToRow = (
-  row: CellState[],
-  side: BoardSide,
-  token: Token
+export const applyMove = (
+  board: BoardState,
+  { row: rowIndex, side, token }: Move
 ): void => {
-  for (let i = 0; i < row.length; i++) {
-    const col = side === "R" ? row.length - 1 - i : i
-    if (row[col] === "_") {
-      row[col] = token
-      return
+  const row = board[rowIndex]
+  if (rowFull(row)) {
+    throw new Error("Row is full.")
+  } else {
+    for (let i = 0; i < row.length; i++) {
+      const col = side === "R" ? row.length - 1 - i : i
+      if (row[col] === "_") {
+        row[col] = token
+        return
+      }
     }
   }
-  // if we reach the end of the row,
-  throw new Error("Row is full.")
 }

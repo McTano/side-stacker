@@ -1,8 +1,9 @@
 import React, { useEffect, useReducer, useState } from "react"
+import { IMessage } from "websocket"
 import { gameReducer } from "./actions"
 import "./App.css"
 import BoardView from "./Board"
-import { ClientMessage, GameAction, RootState } from "./types"
+import { ClientMessage, GameAction, RootState, ServerMessage } from "./types"
 import { emptyBoard } from "./util"
 
 type ConnectionState =
@@ -11,7 +12,7 @@ type ConnectionState =
 
 const initialState: RootState = {
   board: emptyBoard(),
-  game: { status: "WAITING_FOR_MATCH" },
+  game: { status: "NOT_STARTED" },
 }
 
 const socket = new WebSocket("ws://localhost:8080")
@@ -39,12 +40,10 @@ function App() {
     socket.onopen = (_) => {
       console.log("websocket connected")
     }
-    socket.onmessage = (msg) => {
+    socket.onmessage = (msg: IMessage) => {
       if (msg.type === "message") {
-        let contents
         try {
-          contents = JSON.parse((msg as any).data)
-
+          const contents: ServerMessage = JSON.parse((msg as any).data)
           console.log(contents)
           switch (contents.status) {
             case "CONNECTED":
@@ -53,14 +52,19 @@ function App() {
                 userID: contents.userID,
               })
               break
-            //   break
+            case "BOT_CREATED":
             case "START_GAME": {
               const { myTurn, myToken } = contents
               dispatch({ type: "START_GAME", payload: { myTurn, myToken } })
               break
             }
             case "MOVE_PLAYED": {
-              dispatch({ type: "PLAY_MOVE", payload: contents.payload })
+              // half-second delay to make transition less jarring when playing against AI
+              setTimeout(
+                () =>
+                  dispatch({ type: "PLAY_MOVE", payload: contents.payload }),
+                500
+              )
               break
             }
             case "YOU_WIN": {
@@ -68,10 +72,14 @@ function App() {
               break
             }
             case "YOU_LOSE": {
-              dispatch({
-                type: "YOU_LOSE",
-                payload: { lastMove: contents.lastMove },
-              })
+              setTimeout(
+                () =>
+                  dispatch({
+                    type: "YOU_LOSE",
+                    payload: { lastMove: contents.lastMove },
+                  }),
+                500
+              )
               break
             }
             default: {
@@ -97,6 +105,32 @@ function App() {
           ? "Waiting"
           : "Connected as Player " + connection.userID}
       </h3>
+      {connection.status === "CONNECTED" && game.status === "NOT_STARTED" && (
+        <>
+          <button
+            onClick={() =>
+              sendMessage({
+                type: "PLAY_BOT",
+                payload: { userID: connection.userID },
+              })
+            }
+          >
+            Play Against AI
+          </button>
+          <button
+            onClick={
+              () =>
+                sendMessage({
+                  type: "PLAY_HUMAN",
+                  payload: { userID: connection.userID },
+                })
+              // TODO Change game state to "WAITING_FOR_MATCH"
+            }
+          >
+            Play against a human
+          </button>
+        </>
+      )}
       {connection.status === "CONNECTED" &&
         game.status === "WAITING_FOR_MATCH" && <h3>Waiting for Match</h3>}
       {game.status === "PLAYING" && (
